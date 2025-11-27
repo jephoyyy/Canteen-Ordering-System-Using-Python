@@ -162,7 +162,7 @@ while True: # the first menu that will appear upon starting up the system
     if mode == "1":
         user_mode()
     elif mode == "2":
-        admin_mode()
+        admin_mode() 
     elif mode == "3":
         print("Exiting system. Goodbye!")
         break
