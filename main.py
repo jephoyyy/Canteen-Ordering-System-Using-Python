@@ -1,7 +1,8 @@
-import time # package used for queue time order
-from datetime import datetime # package use for real-time date and time for overall view of all order
+import time # Para sa queue time / timer ng order
+from datetime import datetime  # Para makuha ang real-time date and time para sa receipts
 
-menu = { # this is where we store our products that is available to the system
+# Product storage (similar sa database tables)
+menu = {
     "Beverages": {
         1: ("Lemon", 15),
         2: ("Iced Tea", 20),
@@ -21,100 +22,107 @@ menu = { # this is where we store our products that is available to the system
         8: ("Chicken Fillet", 35)
     },
     "Meals": {
-        1: ('Sisig', 70),
-        2: ('Pares', 60),
-        3: ('Siomai Rice', 35),
-        4: ('Tapsilog', 40),
-        5: ('Pastil', 25),
-        6: ('BBQ', 25),
-        7: ('Hotsilog', 40),
-        8: ('Longsilog', 40)
+        1: ("Sisig", 70),
+        2: ("Pares", 60),
+        3: ("Siomai Rice", 35),
+        4: ("Tapsilog", 40),
+        5: ("Pastil", 25),
+        6: ("BBQ", 25),
+        7: ("Hotsilog", 40),
+        8: ("Longsilog", 40)
     }
 }
 
-session_orders = []
-order_history = []
-order_count = 0
+session_orders = []      # Dynamic Arrays, declared na ang array is nag sstart ng empty list
+order_history = []       
+order_count = 0          # Order number counter
+customer_id_counter = 1  # Auto-increment customer ID start siya sa 1
 
-def simulate_order_timer(order_number, item_name):
-    print("\nOrder #" + str(order_number) + " (" + item_name + ") is being prepared...")
-    for i in range(3, 0, -1): # loops 3 time and print the output below 3 times with 1 second delay
-        print("Order #" + str(order_number) + " ready in " + str(i) + "...")
-        time.sleep(1) # 1 second delay for timer
-    print("Order is READY!\n")
+def simulate_order_timer(order_number, item_name): #Function for Queue/Timer para sa order
+    print(f"\nPreparing Order #{order_number} ({item_name})...")
+    for i in range(3, 0, -1): # For loop nag sstart sa 3 decrement ng 1 kada 1 second
+        print(f"Ready in {i}...")
+        time.sleep(1)
+    print("Order READY!\n")
 
 def show_menu(category):
-    global order_count
-
+    global order_count #since asa labas ang order_count at gusto natin siyang baguhin, gumamit tayo ng global keyword
     items = menu[category]
 
-    print("\n--- " + category.upper() + " ---")
-    for id in items:
-        name = items[id][0]
-        price = items[id][1]
-        print(str(id) + ". " + name + " - ₱" + str(price))
+    while True:
+        print("\n--- " + category + " ---") 
+        for pid in items: #For loop print for list of all products per category
+            name, price = items[pid]
+            print(f"{pid}. {name} - ₱{price}")
 
-    try:
-        order = int(input("\nEnter item number to order (0 to go back): "))
-        if order == 0:
-            return
+        try:
+            choice = int(input("\nChoose item (0 to go back): ")) #User's Input
+            if choice == 0: # Decision making statements
+                return
+            if choice not in items: # If wala sa range ng options 
+                print("Invalid item.")
+                continue #Para bumalik sa pag pili ng items
 
-        qty = int(input("Enter quantity: "))
+            qty = int(input("Quantity: "))
+            name, price = items[choice]
+            total = price * qty # Operation para makuha ang total 
 
-        if order not in items:
-            print("Invalid item number!")
-            return
+            order_count += 1 #increment sa order_count
+            simulate_order_timer(order_count, name)
 
-        name = items[order][0]
-        price = items[order][1]
-        total = price * qty
+            session_orders.append({ #taga store ng values na nakuha 
+                "name": name,
+                "qty": qty,
+                "total": total
+            })
 
-        order_count += 1
-        simulate_order_timer(order_count, name)
+            print(f"Added to cart: {qty} x {name}")
+            break # stop ng loop
 
-        session_orders.append({
-            "name": name,
-            "qty": qty,
-            "total": total
-        })
+        except ValueError: # Error Handling if may mag-exist na error.
+            print("Invalid input!")
 
-        print("Added to cart: " + str(qty) + " x " + name + " (₱" + str(total) + ")")
-
-    except ValueError:
-        print("Invalid input!")
-
-
-def finish_ordering():
-    if len(session_orders) == 0:
-        print("You haven't ordered anything yet!")
+def finish_ordering(customer_id): #Function for option 5
+    if not session_orders: #Check if may laman ang cart or session
+        print("No orders yet!")
         return
 
-    grand_total = 0
-    print("\n=== SESSION RECEIPT ===")
+    grand_total = 0 
+
+    print("\n=== SESSION RECEIPT ===") #header
 
     for item in session_orders:
-        line = str(item["qty"]) + " x " + item["name"] + " ........ ₱" + str(item["total"])
-        print(line)
+        print(f'{item["qty"]} x {item["name"]} .... ₱{item["total"]}')
         grand_total += item["total"]
 
-        order_history.append({
+        order_history.append({ #taga store ng order history para sa admin view
+            "customer_id": customer_id,
             "item_name": item["name"],
             "quantity": item["qty"],
             "total": item["total"],
-            "order_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "order_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S") #Kunin ang real time & date upon ordering and i format sa readable form
         })
 
     print("-----------------------------")
-    print("GRAND TOTAL: ₱" + str(grand_total))
-    print("Thank you for ordering!\n")
+    print("TOTAL: ₱" + str(grand_total)) #Convert ang int to string
 
-    session_orders.clear()
+    session_orders.clear() #Para ma-reset at hindi mag halo ang order ng previous customer sa current customer
 
-def user_mode(): #will show if user chose the number 1 option at the start menu
+def user_mode(): #Functiom for option 1 sa unang menu
+    global customer_id_counter #Pare ma access ang nasa labas ng variable na may assigned value
+
+    # assign unique customer ID sa bawat user
+    customer_id = customer_id_counter
+    customer_id_counter += 1
+
+    print(f"\nYour Customer ID: {customer_id}")
+
     while True:
-        print("\n[1] Beverages\n[2] Snacks\n[3] Meals\n[4] Exit\n[5] Finish Ordering")
-        choice = input("Choose a category: ")
+        print("\n--- USER MENU ---") #Menu after choosing User's Menu
+        print("[1] Beverages\n[2] Snacks\n[3] Meals\n[4] Back\n[5] Finish Order")
 
+        choice = input("Choose: ")
+        #All parameter here goes to their specific category.
         if choice == "1":
             show_menu("Beverages")
         elif choice == "2":
@@ -122,50 +130,73 @@ def user_mode(): #will show if user chose the number 1 option at the start menu
         elif choice == "3":
             show_menu("Meals")
         elif choice == "4":
-            print("Returning to main menu...")
             return
         elif choice == "5":
-            finish_ordering()
+            finish_ordering(customer_id) #Tinawag yung function na ginawa for option 5
         else:
             print("Invalid choice!")
 
-def admin_mode(): #will show if user chose the number 2 option at the start menu
-    password = input("Enter admin password: ") 
+def admin_mode(): #Function for option 2 sa unang menu
+    password = input("\nEnter admin password: ")
 
-    if password != "pogiako123": #you can change the password here!!
-        print("Incorrect password!")
+    if password != "pogiako123": #dito pwede mag change ng password
+        print("Wrong password.")
         return
 
-    print("\n=== ALL ORDERS (ADMIN VIEW) ===") # this is where the all order history will show.
+    while True:
+        print("\n=== ADMIN VIEW ===")
+        print("[1] View ALL Orders\n[2] View Orders by Customer ID\n[3] Back")
 
-    if len(order_history) == 0: #if no orders are made during the whole run up
-        print("No orders yet.")
-        return
+        choice = input("Choose: ")
 
-    for i in range(len(order_history)):
-        order = order_history[i]
-        line = ("Order #" + str(i + 1) +
-                " | " + order["item_name"] +
-                " x" + str(order["quantity"]) +
-                " | ₱" + str(order["total"]) +
-                " | " + order["order_time"])
+        if choice == "1":
+            if not order_history:
+                print("No orders found.")
+            else:
+                print("\n--- ALL ORDERS ---")
+                for i, order in enumerate(order_history, start=1): #nagbibigay ng index number habang nag-i-iterate sa list.
+                    print(
+                        f"#{i} | Customer {order['customer_id']} | "
+                        f"{order['item_name']} x{order['quantity']} | ₱{order['total']} | {order['order_time']}"
+                    )
 
-        print(line)
+        elif choice == "2":
+            try:
+                cid = int(input("Enter Customer ID: "))
+                found = False #Check if may order ang customer
 
-while True: # the first menu that will appear upon starting up the system
+                print(f"\n--- ORDERS OF CUSTOMER {cid} ---")
+
+                for order in order_history:
+                    if order["customer_id"] == cid:
+                        found = True
+                        print(
+                            f"{order['item_name']} x{order['quantity']} | ₱{order['total']} | {order['order_time']}"
+                        )
+
+                if not found:
+                    print("No orders found for this customer.")
+
+            except ValueError: #Error handling
+                print("Invalid ID.")
+
+        elif choice == "3":
+            return #Exit
+        else:
+            print("Invalid choice!")
+
+while True:
     print("\n=== CANTEEN ORDERING SYSTEM ===")
-    print("[1] User Mode")
-    print("[2] Admin Mode")
-    print("[3] Exit")
-    mode = input("Choose mode: ")
+    print("[1] User Mode\n[2] Admin Mode\n[3] Exit")
+
+    mode = input("Choose: ")
 
     if mode == "1":
-        user_mode()
+        user_mode() #call ng function
     elif mode == "2":
-        admin_mode() 
+        admin_mode()
     elif mode == "3":
-        print("Exiting system. Goodbye!")
-        break
+        print("Goodbye!")
+        break #Terminate
     else:
-        print("Invalid choice!")
-
+        print("Invalid input!")
